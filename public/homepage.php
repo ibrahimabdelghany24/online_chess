@@ -1,14 +1,7 @@
 <?php
 session_start();
-if (isset($_SESSION["user_id"])) {?>
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Homepage</title>
-  </head>
-  <body>
+if (isset($_SESSION["user_id"])) {
+    include "./layout/header.php";?>
     <h1>Welcome to the homepage!</h1>
     <div>
       <a href="">play 5 min</a><br>
@@ -19,10 +12,9 @@ if (isset($_SESSION["user_id"])) {?>
       <a href="../backend/logout.php">logout</a>
     </div>
     <br>
-
-    
-  </body>
-  </html>
+    <?php
+    include "./layout/footer.php";
+    ?>
 <?php
 } else {
   header("location: index.php");
