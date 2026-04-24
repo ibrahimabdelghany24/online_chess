@@ -18,7 +18,7 @@ if (isset($_SESSION["user_id"])) {
   <form action="../backend/login.php" method="POST">
 
     <label>
-      Username: <input type="text" name="username" id="username" required>
+      Username: <input class="login" type="text" name="username" id="username" required>
     </label>
 
     <label>

@@ -10,9 +10,11 @@ async function checkUser(username) {
   return data.exists;
 }
 
+
+if (usernameInput) {
 usernameInput.addEventListener("input", async () => {
   exists = await checkUser(usernameInput.value);
-  if (exists) {
+  if (exists && !(usernameInput.classList.contains("login"))) {
     usernameInput.setCustomValidity("Username is already taken.");
 
   } else if (usernameInput.value.length < 3) {
@@ -26,16 +28,20 @@ usernameInput.addEventListener("input", async () => {
   }
   usernameInput.reportValidity();
 });
+}
 
+if (passwordInput2) {
 passwordInput.addEventListener("input", () => {
-  if (passwordInput.value.length < 8) {
+  if (passwordInput.value.length < 2) {
     passwordInput.setCustomValidity("Password must be at least 8 characters long.");
   } else {
     passwordInput.setCustomValidity("");
   }
   passwordInput.reportValidity();
 });
+}
 
+if (passwordInput2) { 
 passwordInput2.addEventListener("input", () => {
   if (passwordInput2.value !== passwordInput.value) {
     passwordInput2.setCustomValidity("Passwords do not match.");
@@ -43,3 +49,4 @@ passwordInput2.addEventListener("input", () => {
     passwordInput2.setCustomValidity("");
   }
 });
+}
