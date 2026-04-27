@@ -15,22 +15,22 @@ if (isset($_SESSION["user_id"])) {
 </head>
 
 <body>
-  <form action="../backend/login.php" method="POST">
+  <form method="POST" id="login-form" autocomplete="off">
 
     <label>
-      Username: <input class="login" type="text" name="username" id="username" required>
+      Username: <input class="login" type="text" name="username" id="username" >
     </label>
 
     <label>
-      Password: <input type="password" name="password" id="password" required>
+      Password: <input type="password" name="password" id="password" >
     </label>
 
     <a href="./signup.php">Have No Account?</a>
-
     <label>
       <input type="submit" value="Login">
     </label>
   </form>
+  <div id="errors"></div>
   <script src="js/backend.js"></script>
 </body>
 

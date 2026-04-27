@@ -1,27 +1,32 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-?>
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  session_start();
+  header("Content-Type: application/json");
+  include "./db.php";
+  $errors = [];
+  $username = $_POST["username"];
+  $password_input = $_POST["password"];
 
-<?php
-include "./db.php";
-$username = $_POST["username"];
-$password = password_hash($_POST["password"], PASSWORD_DEFAULT);
-if (isset($username) && isset($_POST["password"])) {
-  $stmt = $con->prepare("SELECT * FROM users WHERE username = ?");
-  $stmt->execute([$username]);
-  $user = $stmt->fetch(PDO::FETCH_ASSOC);
-  if ($user && password_verify($_POST["password"], $user["password"])) {
-    session_start();
-    $_SESSION["user_id"] = $user["id"];
-    $_SESSION["username"] = $user["username"];
-    header("Location: ../public/homepage.php");
-    exit;
+  if (empty($username) || empty($password_input)) {
+    $errors[] = "Please fill in all fields.";
+  }
+
+  if (empty($errors)) {
+    $stmt = $con->prepare("SELECT id, username, password FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($user && password_verify($password_input, $user["password"])) {
+      session_regenerate_id(true);
+      $_SESSION["user_id"] = $user["id"];
+      $_SESSION["username"] = $user["username"];
+      echo json_encode(["success" => true, "redirect" => "../public/homepage.php"]);
+      exit;
+    } else {
+      echo json_encode(["success" => false, "errors" => ["Invalid username or password."]]);
+      exit;
+    }
   } else {
-    echo "Invalid username or password.";
-    header("location: ../public/index.php");
+    echo json_encode(["success" => false, "errors" => $errors]);
     exit;
   }
-} else {
-  echo "Please fill in all fields.";
 }
