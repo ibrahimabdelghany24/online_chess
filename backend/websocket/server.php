@@ -38,19 +38,33 @@ class GameServer implements MessageComponentInterface
         'conn' => $conn,
         'elo'  => $data['elo'],
         'time' => $data['time'],
-        'inc'  => $data['inc']
+        'inc'  => $data['inc'],
+        'username' => $data['username'],
+        'id' => $data['id']
       ];
 
       $match = $this->findMatch($player);
 
       if ($match) {
-        $roomId = uniqid("game_");
-
-        $this->rooms[$roomId] = $match;
-
+        $roomId = uniqid("");
+        $color = rand(0, 1);
+        $this->rooms[$roomId] = [
+          'joined' => false,
+          'time'          => $match[0]['time'],
+          'inc'           => $match[0]['inc'],
+          $match[0]['id'] => [
+            'elo'  => $match[0]['elo'],
+            'username' => $match[0]['username'],
+            'color' => $color
+          ],
+          $match[1]['id'] => [
+            'elo'  => $match[1]['elo'],
+            'username' => $match[1]['username'],
+            'color' => abs($color - 1)
+          ]
+        ];
         foreach ($match as $p) {
           $p['conn']->room = $roomId;
-
           $p['conn']->send(json_encode([
             'type' => 'start_game',
             'room' => $roomId,
@@ -78,7 +92,7 @@ class GameServer implements MessageComponentInterface
     if (isset($conn->room)) {
       $roomId = $conn->room;
 
-      if (isset($this->rooms[$roomId])) {
+      if (isset($this->rooms[$roomId]) && $this->rooms[$roomId]) {
 
         foreach ($this->rooms[$roomId] as $p) {
           if ($p['conn'] !== $conn) {

@@ -1,18 +1,29 @@
 const socket = new WebSocket("ws://localhost:8080");
 
+
+async function getData(username) {
+  const res = await fetch("../backend/api/check_user.php?username=" + username);
+  return await res.json();
+}
+
+
 document.querySelectorAll(".game-options a").forEach(el => {
   el.addEventListener("click", (e) => {
     e.preventDefault();
     const time = el.getAttribute("data-time");
     const inc = el.getAttribute("data-inc");
-    const elo = el.getAttribute("data-elo");
-
-    socket.send(JSON.stringify({
-      type: "join_queue",
-      time,
-      inc,
-      elo
-    }));
+    const eloType = el.getAttribute("data-elo");
+    getData(username).then(data => {
+      console.log(data);
+      socket.send(JSON.stringify({
+        type: "join_queue",
+        username: data.username,
+        id: data.id,
+        time: time,
+        inc: inc,
+        elo: data[eloType + "_rating"],
+      }));
+    });
     el.parentElement.querySelectorAll("a").forEach(a => {
       a.style.pointerEvents = "none";
       a.style.visibility = "hidden";
