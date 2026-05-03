@@ -8,6 +8,7 @@ use Ratchet\Http\HttpServer;
 use Ratchet\Server\IoServer;
 use Ratchet\WebSocket\WsServer;
 
+include "../db.php";
 class GameServer implements MessageComponentInterface
 {
 
@@ -44,7 +45,7 @@ class GameServer implements MessageComponentInterface
       ];
 
       $match = $this->findMatch($player);
-
+      // TODO: insert the data into the database only send the room id, url only
       if ($match) {
         $roomId = uniqid("");
         $color = rand(0, 1);
