@@ -14,7 +14,6 @@ document.querySelectorAll(".game-options a").forEach(el => {
     const inc = el.getAttribute("data-inc");
     const eloType = el.getAttribute("data-elo");
     getData(username).then(data => {
-      console.log(data);
       socket.send(JSON.stringify({
         type: "join_queue",
         username: data.username,
@@ -22,6 +21,7 @@ document.querySelectorAll(".game-options a").forEach(el => {
         time: time,
         inc: inc,
         elo: data[eloType + "_rating"],
+        game_type: eloType
       }));
     });
     el.parentElement.querySelectorAll("a").forEach(a => {
@@ -38,7 +38,7 @@ document.querySelectorAll(".game-options a").forEach(el => {
 
 socket.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  console.log(data);
+  console.log(`data is ${data}`);
   if (data.type === "start_game") {
     window.location.href = data.url;
   }

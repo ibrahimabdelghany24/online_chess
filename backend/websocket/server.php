@@ -8,15 +8,13 @@ use Ratchet\Http\HttpServer;
 use Ratchet\Server\IoServer;
 use Ratchet\WebSocket\WsServer;
 
-include "../db.php";
+include __DIR__ . "/../db.php";
 class GameServer implements MessageComponentInterface
 {
 
   private array $clients = [];
   private array $queue = [];
   private array $rooms = [];
-
-  public function __construct() {}
 
   // When a new player connects
   public function onOpen(ConnectionInterface $conn)
@@ -31,7 +29,6 @@ class GameServer implements MessageComponentInterface
     $data = json_decode($msg, true);
     if (!$data || !isset($data['type'])) return;
 
-
     // push to queue
     if ($data['type'] === 'join_queue') {
 
@@ -41,28 +38,41 @@ class GameServer implements MessageComponentInterface
         'time' => $data['time'],
         'inc'  => $data['inc'],
         'username' => $data['username'],
-        'id' => $data['id']
+        'id' => $data['id'],
+        'type' => $data['game_type']
       ];
 
       $match = $this->findMatch($player);
       // TODO: insert the data into the database only send the room id, url only
       if ($match) {
-        $roomId = uniqid("");
+        $player1 = $match[0];
+        $player2 = $match[1];
+
         $color = rand(0, 1);
-        $this->rooms[$roomId] = [
-          'joined' => false,
-          'time'          => $match[0]['time'],
-          'inc'           => $match[0]['inc'],
-          $match[0]['id'] => [
-            'elo'  => $match[0]['elo'],
-            'username' => $match[0]['username'],
-            'color' => $color
-          ],
-          $match[1]['id'] => [
-            'elo'  => $match[1]['elo'],
-            'username' => $match[1]['username'],
-            'color' => abs($color - 1)
+        global $con;
+        $stmt = $con->prepare(
+          "INSERT INTO matches(black, white, type, time, inc, board, turn, moves, status, date)
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now())"
+        );
+        $stmt->execute(
+          [
+            ($color) ? $player1["id"] : $player2["id"],
+            ($color) ? $player2["id"] : $player1["id"],
+            $player1["type"],
+            $player1["time"],
+            $player1["inc"],
+            "test",
+            "white",
+            "",
+            "waiting"
           ]
+        );
+
+        $roomId = $con->lastInsertId();
+
+        $this->rooms[$roomId] = [
+          $player1,
+          $player2,
         ];
         foreach ($match as $p) {
           $p['conn']->room = $roomId;
@@ -76,37 +86,62 @@ class GameServer implements MessageComponentInterface
         $this->queue[] = $player;
       }
     }
+
+    if ($data['type'] === 'move') {
+      $roomId = $data['room'];
+      $FEN = $data["FEN"];
+      $moves = $data["moves"];
+      $turn = ($data["turn"] == "w") ? "white" : "black";
+      $conn->room = $roomId;
+      global $con;
+      $stmt = $con->prepare("UPDATE matches SET board = ?, moves = ?, turn = ? WHERE id = ?");
+      $stmt->execute([$FEN, $moves, $turn, $roomId]);
+      if (isset($this->rooms[$roomId])) {
+        foreach ($this->rooms[$roomId] as $player) {
+          if ($player['conn'] !== $conn) {  // send to opponent only
+            $player['conn']->send(json_encode([
+              'type' => 'move',
+              'move' => $data['move']
+            ]));
+          }
+        }
+      }
+    }
+
+    if ($data['type'] === 'join_room') {
+      $roomId = $data['room'];
+      if (!isset($this->rooms[$roomId])) {
+        $this->rooms[$roomId] = [];
+      }
+
+      $this->rooms[$roomId][] = ["conn" => $conn];
+    }
   }
+
 
   // When a player disconnects
   public function onClose(ConnectionInterface $conn)
   {
-
     // remove from queue
     foreach ($this->queue as $i => $p) {
       if ($p['conn'] === $conn) {
         unset($this->queue[$i]);
       }
     }
-
     // remove from room
     if (isset($conn->room)) {
       $roomId = $conn->room;
-
       if (isset($this->rooms[$roomId]) && $this->rooms[$roomId]) {
-
-        foreach ($this->rooms[$roomId] as $p) {
-          if ($p['conn'] !== $conn) {
-            $p['conn']->send(json_encode([
+        foreach ($this->rooms[$roomId] as $player) {
+          if ($player["conn"] !== $conn) {
+            $player["conn"]->send(json_encode([
               'type' => 'opponent_left'
             ]));
           }
         }
-
         unset($this->rooms[$roomId]);
       }
     }
-
     unset($this->clients[spl_object_id($conn)]);
   }
 
@@ -118,9 +153,7 @@ class GameServer implements MessageComponentInterface
   // Look for a match in the queue
   private function findMatch(array $newPlayer)
   {
-
     foreach ($this->queue as $i => $p) {
-
       if (
         abs($p['elo'] - $newPlayer['elo']) <= 50 &&
         $p['time'] == $newPlayer['time'] &&
@@ -130,7 +163,6 @@ class GameServer implements MessageComponentInterface
         return [$p, $newPlayer];
       }
     }
-
     return null;
   }
 }
