@@ -136,4 +136,8 @@ ws.onopen = () => {
   }))
 }
 
+if (PLAYER_COLOR == "black") {
+  flipBoard()
+}
+
 renderBoard();

@@ -42,15 +42,15 @@ $opp = ($row["white"] == $_SESSION["user_id"]) ? "black" : "white";
 </head>
 
 <body>
-  <!-- Opponent -->
-  <div class="info">
-    <h3><?= $row[$opp . "_username"] ?></h3>
-    <p>Time: <?= $row["time"] ?></p>
-    <p>elo: <?= $row[$opp . "_elo"] ?></p>
-    <p>cplor: <?= $opp ?></p>
-  </div>
 
   <div class="board-wrap">
+    <!-- Opponent -->
+    <div class="info">
+      <h3><?= $row[$opp . "_username"] ?></h3>
+      <p>Time: <?= $row["time"] ?></p>
+      <p>elo: <?= $row[$opp . "_elo"] ?></p>
+      <p>color: <?= $opp ?></p>
+    </div>
     <div>
       <div style="display:flex; align-items:flex-start;">
         <div class="rank-labels" id="rank-labels"></div>
@@ -60,17 +60,14 @@ $opp = ($row["white"] == $_SESSION["user_id"]) ? "black" : "white";
         </div>
       </div>
       <div class="status" id="status">White to move</div>
-      <div class="controls">
-        <button onclick="flipBoard()">⇅ Flip</button>
-      </div>
     </div>
-  </div>
-  <!-- Player -->
-  <div class="info">
-    <h3>Name: <?= $_SESSION["username"] ?></h3>
-    <p>Time: <?= $row["time"] ?></p>
-    <p>elo: <?= $row[$you . "_elo"] ?></p>
-    <p>cplor: <?= $you ?></p>
+    <!-- Player -->
+    <div class="info">
+      <h3>Name: <?= $_SESSION["username"] ?></h3>
+      <p>Time: <?= $row["time"] ?></p>
+      <p>elo: <?= $row[$you . "_elo"] ?></p>
+      <p>color: <?= $you ?></p>
+    </div>
   </div>
   <script>
     const ROOM_ID = <?= $row["id"] ?>;
