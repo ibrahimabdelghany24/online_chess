@@ -1,6 +1,58 @@
 {
     "packages": [
         {
+            "name": "aglaia-resident/chess.php",
+            "version": "v2.2.0",
+            "version_normalized": "2.2.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/aglaia-resident/chess.php.git",
+                "reference": "4ed887514023db62a07eafdac758048170c92228"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/aglaia-resident/chess.php/zipball/4ed887514023db62a07eafdac758048170c92228",
+                "reference": "4ed887514023db62a07eafdac758048170c92228",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.1"
+            },
+            "require-dev": {
+                "dms/phpunit-arraysubset-asserts": "^0.2.0",
+                "friendsofphp/php-cs-fixer": "^2.15",
+                "johnkary/phpunit-speedtrap": "^3.1",
+                "phpunit/phpunit": "^9"
+            },
+            "time": "2022-06-21T21:41:55+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Ryanhs\\Chess\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "ryan hs",
+                    "email": "mr.ryansilalahi@gmail.com"
+                },
+                {
+                    "name": "Aglaia",
+                    "email": "aglaia@noemail.com"
+                }
+            ],
+            "description": "Fork of ryanhs/chess.php. chess.php is a PHP chess library that is used for chess move generation/validation, piece placement/movement, and check/checkmate/stalemate detection - basically everything but the AI. NOTE: this is a port of chess.js for php",
+            "support": {
+                "source": "https://github.com/aglaia-resident/chess.php/tree/v2.2.0"
+            },
+            "install-path": "../aglaia-resident/chess.php"
+        },
+        {
             "name": "cboden/ratchet",
             "version": "v0.4.4",
             "version_normalized": "0.4.4.0",

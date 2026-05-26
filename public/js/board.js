@@ -1,4 +1,9 @@
 const ws = new WebSocket('ws://localhost:8080');
+let whiteTime = TIME * 60;
+let blackTime = TIME * 60;
+let inc = INC;
+let turn = "w"
+let lastSync = Date.now() / 1000;
 
 const PIECES = {
   wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
@@ -89,9 +94,8 @@ function onSquareClick(sq) {
           type: 'move',
           room: ROOM_ID,
           move: { from: selected, to: sq, promotion: 'q' },
-          FEN: chess.fen(),
-          moves: chess.history().join(","),
-          turn: chess.turn()
+          w_time: whiteTime,
+          b_time: blackTime
         }));
       }
       selected = null;
@@ -119,13 +123,47 @@ function flipBoard() {
   renderBoard();
 }
 
+function formateTime(time) {
+  const mins = Math.floor(time / 60);
+  const sec = time % 60;
+  return `${mins}:${sec.toString().padStart(2, "0")}`
+
+}
+
+const countDown = setInterval(() => {
+  const now = Date.now() / 1000;
+  const elapsed = now - lastSync;
+
+  let w = whiteTime;
+  let b = blackTime;
+
+  if (turn === "w") {
+    w = whiteTime - elapsed;
+  } else {
+    b = blackTime - elapsed;
+  }
+
+  if (blackTime == 0 || whiteTime == 0) {
+    clearInterval(countDown)
+  }
+}, 100)
+
+
+
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
   if (data.type === 'move') {
     chess.move(data.move);
-    console.log(data.move)
     renderBoard();
   }
+
+  if (data.type === "clock_sync") {
+    whiteTime = data.white;
+    blackTime = data.black;
+    turn = data.turn;
+    lastSync = Date.now() / 1000;
+  }
+
 };
 
 ws.onopen = () => {

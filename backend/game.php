@@ -1,10 +1,10 @@
 <?php
 session_start();
 if (!isset($_SESSION["user_id"])) {
-  header("location: ../../public/index.php");
+  header("location: ../public/index.php");
   exit;
 }
-include __DIR__ . '/../db.php';
+include __DIR__ . '/db.php';
 $game_id = $_GET["game_id"];
 $stmt = $con->prepare(
   "SELECT m.*,
@@ -38,45 +38,45 @@ $opp = ($row["white"] == $_SESSION["user_id"]) ? "black" : "white";
 <html>
 
 <head>
-  <link rel="stylesheet" href="../../public/css/board.css">
+  <link rel="stylesheet" href="../public/css/board.css">
 </head>
 
 <body>
 
   <div class="board-wrap">
-    <!-- Opponent -->
-    <div class="info">
-      <h3><?= $row[$opp . "_username"] ?></h3>
-      <p>Time: <?= $row["time"] ?></p>
-      <p>elo: <?= $row[$opp . "_elo"] ?></p>
-      <p>color: <?= $opp ?></p>
-    </div>
+
     <div>
-      <div style="display:flex; align-items:flex-start;">
+      <div class="board-out">
         <div class="rank-labels" id="rank-labels"></div>
         <div>
+          <!-- Opponent -->
+          <div class="<?= $opp . " info" ?> opp">
+            <h3><?= $row[$opp . "_username"] ?> (<?= $row[$opp . "_elo"] ?>)</h3>
+            <span class="<?= $opp . " timer" ?>"><?= $row["time"] . ":00" ?></span>
+          </div>
           <div class="board" id="board"></div>
           <div class="file-labels" id="file-labels"></div>
+          <!-- Player -->
+          <div class="<?= $you . " info" ?> you">
+            <h3><?= $_SESSION["username"] ?> (<?= $row[$you . "_elo"] ?>)</h3>
+            <span class="<?= $you . " timer" ?>"><?= $row["time"] . ":00" ?></span>
+          </div>
         </div>
       </div>
       <div class="status" id="status">White to move</div>
     </div>
-    <!-- Player -->
-    <div class="info">
-      <h3>Name: <?= $_SESSION["username"] ?></h3>
-      <p>Time: <?= $row["time"] ?></p>
-      <p>elo: <?= $row[$you . "_elo"] ?></p>
-      <p>color: <?= $you ?></p>
-    </div>
+
   </div>
   <script>
     const ROOM_ID = <?= $row["id"] ?>;
     const PLAYER_ID = <?= $_SESSION["user_id"] ?>;
     const PLAYER_COLOR = "<?= $you ?>";
+    let TIME = <?= $row["time"] ?>;
+    let INC = <?= $row["inc"] ?>;
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" referrerpolicy="no-referrer"></script>
-  <script src="../../public/js/board.js"></script>
-  <script src="../../public/js/socket.js"></script>
+  <script src="../public/js/board.js"></script>
+  <script src="../public/js/socket.js"></script>
 </body>
 
 </html>

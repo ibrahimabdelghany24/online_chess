@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 .board-wrap { 
   display: flex;
   flex-direction: column; 
@@ -6,12 +10,18 @@
   padding: 1.5rem 0; 
 }
 
+.board-out {
+  display:flex; 
+  align-items:flex-start;
+  position: relative;
+}
+
 .board { 
   display: grid; 
   grid-template-columns: repeat(8, 56px); 
   grid-template-rows: repeat(8, 56px); 
   border: 2px solid #333; 
-  border-radius: 4px; overflow: hidden; 
+  overflow: hidden; 
 }
 
 .sq { 
@@ -51,20 +61,27 @@
 
 .file-labels { 
   display: flex; 
+  position: absolute;
+  bottom: 62px;
+  left: 20px;
 }
 
 .file-label { 
   width: 56px; 
   text-align: center; 
   font-size: 12px; 
-  color: #888; 
+  color: black; 
 }
 
 .rank-labels { 
-  display: flex; 
-  flex-direction: column; 
-  justify-content: space-around; 
-  padding-right: 4px; 
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding-right: 4px;
+  position: absolute;
+  z-index: 100;
+  top: 41px;
+  left: 6px;
 }
 
 .rank-label { 
@@ -72,7 +89,7 @@
   display: flex; 
   align-items: center; 
   font-size: 12px; 
-  color: #888; 
+  color: black; 
 }
 
 .status { 
@@ -87,4 +104,31 @@
   justify-content: center; 
   gap: 8px; 
   margin-top: 12px; 
+}
+
+.info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #333;
+  color: white;
+  padding: 0 10px;
+
+}
+
+.info.you {
+  border-radius: 0 0 5px 5px;
+}
+
+.info.opp {
+  border-radius: 5px 5px 0 0;
+}
+
+.timer {
+  background-color: white;
+  color: black;
+  font-size: 20px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 5px;
 }

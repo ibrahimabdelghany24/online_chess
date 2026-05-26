@@ -24,6 +24,7 @@ class ComposerStaticInitce559b9fbd0e097bccee77e6c3cc8be1
         ),
         'R' => 
         array (
+            'Ryanhs\\Chess\\' => 13,
             'React\\Stream\\' => 13,
             'React\\Socket\\' => 13,
             'React\\Promise\\' => 14,
@@ -63,6 +64,10 @@ class ComposerStaticInitce559b9fbd0e097bccee77e6c3cc8be1
         'Symfony\\Component\\HttpFoundation\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/http-foundation',
+        ),
+        'Ryanhs\\Chess\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/aglaia-resident/chess.php/src',
         ),
         'React\\Stream\\' => 
         array (
