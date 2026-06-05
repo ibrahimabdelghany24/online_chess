@@ -32,7 +32,6 @@ class GameServer implements MessageComponentInterface
 
     // push to queue
     if ($data['type'] === 'join_queue') {
-
       $player = [
         'conn' => $conn,
         'elo'  => $data['elo'],
@@ -42,13 +41,11 @@ class GameServer implements MessageComponentInterface
         'id' => $data['id'],
         'type' => $data['game_type']
       ];
-
       $match = $this->findMatch($player);
       // TODO: insert the data into the database only send the room id, url only
       if ($match) {
         $player1 = $match[0];
         $player2 = $match[1];
-
         $color = rand(0, 1);
         global $con;
         $stmt = $con->prepare(
@@ -62,8 +59,8 @@ class GameServer implements MessageComponentInterface
             $player1["type"],
             $player1["time"],
             $player1["inc"],
-            "test",
-            "white",
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "w",
             "",
             "waiting"
           ]
@@ -96,21 +93,22 @@ class GameServer implements MessageComponentInterface
       $row = $stmt->fetch(PDO::FETCH_ASSOC);
       $move = $data["move"];
       $conn->room = $roomId;
+      // if it is the first move
       if (!isset($this->rooms[$roomId]["game"])) {
         $this->rooms[$roomId]["game"] = [
           "chess" => new Chess(),
           "clock" => [
-            "white" => $row["time"],
-            "black" => $row["time"],
-            "inc" => $row["inc"],
+            "white" => $row["time"] * 60 * 1000,
+            "black" => $row["time"] * 60 * 1000,
+            "inc" => $row["inc"] * 1000,
             "turn" => "w",
-            "last_update" => microtime(true)
+            "last_update" => microtime(true) * 1000
           ]
         ];
       }
-      $game = $this->rooms[$roomId]["game"]["chess"];
-      $clock = $this->rooms[$roomId]["game"]["clock"];
-      $now = microtime(true);
+      $game = &$this->rooms[$roomId]["game"]["chess"];
+      $clock = &$this->rooms[$roomId]["game"]["clock"];
+      $now = microtime(true) * 1000;
       $elapsed = $now - $clock["last_update"];
       // subtract time from player who moved
       if ($clock['turn'] === "w") {
@@ -132,7 +130,8 @@ class GameServer implements MessageComponentInterface
             "white" => $clock['white'],
             "black" => $clock['black'],
             "turn" => $clock['turn'],
-            "server_time" => microtime(true)
+            "server_time" => microtime(true) * 1000,
+            "FEN" => $game->fen()
           ]));
         }
       }
@@ -144,15 +143,13 @@ class GameServer implements MessageComponentInterface
       $turn = $game->turn();
       $stmt = $con->prepare("UPDATE matches SET board = ?, moves = ?, turn = ? WHERE id = ?");
       $stmt->execute([$FEN, $moves, $turn, $roomId]);
-      print_r($game->history());
-      echo $game->fen();
       if (isset($this->rooms[$roomId])) {
         foreach ($this->rooms[$roomId] as $i => $player) {
           if ($i == "game") continue;
           if ($player['conn'] !== $conn) {  // send to opponent only
             $player['conn']->send(json_encode([
               'type' => 'move',
-              'move' => $data['move']
+              'move' => $data['move'],
             ]));
           }
         }
@@ -168,6 +165,8 @@ class GameServer implements MessageComponentInterface
       $this->rooms[$roomId][] = ["conn" => $conn];
     }
   }
+
+
 
 
   // When a player disconnects

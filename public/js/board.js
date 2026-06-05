@@ -1,9 +1,11 @@
 const ws = new WebSocket('ws://localhost:8080');
-let whiteTime = TIME * 60;
-let blackTime = TIME * 60;
-let inc = INC;
+let whiteTime = TIME * 60 * 1000;
+let blackTime = TIME * 60 * 1000;
+let inc = INC * 1000;
 let turn = "w"
-let lastSync = Date.now() / 1000;
+let lastSync = Date.now();
+let blackClock = document.querySelector('.black.timer');
+let whiteClock = document.querySelector('.white.timer');
 
 const PIECES = {
   wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
@@ -124,14 +126,13 @@ function flipBoard() {
 }
 
 function formateTime(time) {
-  const mins = Math.floor(time / 60);
-  const sec = time % 60;
+  const mins = Math.floor(time / 1000 / 60);
+  const sec = Math.floor(time / 1000) % 60;
   return `${mins}:${sec.toString().padStart(2, "0")}`
-
 }
 
 const countDown = setInterval(() => {
-  const now = Date.now() / 1000;
+  const now = Date.now();
   const elapsed = now - lastSync;
 
   let w = whiteTime;
@@ -142,8 +143,10 @@ const countDown = setInterval(() => {
   } else {
     b = blackTime - elapsed;
   }
+  whiteClock.innerHTML = formateTime(w);
+  blackClock.innerHTML = formateTime(b);
 
-  if (blackTime == 0 || whiteTime == 0) {
+  if (blackTime <= 0 || whiteTime <= 0) {
     clearInterval(countDown)
   }
 }, 100)
@@ -161,9 +164,8 @@ ws.onmessage = (event) => {
     whiteTime = data.white;
     blackTime = data.black;
     turn = data.turn;
-    lastSync = Date.now() / 1000;
+    lastSync = Date.now();
   }
-
 };
 
 ws.onopen = () => {
@@ -173,6 +175,7 @@ ws.onopen = () => {
     id: PLAYER_ID
   }))
 }
+
 
 if (PLAYER_COLOR == "black") {
   flipBoard()
