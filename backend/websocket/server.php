@@ -88,15 +88,21 @@ class GameServer implements MessageComponentInterface
     if ($data['type'] === 'move') {
       global $con;
       $roomId = $data['room'];
-      $stmt = $con->prepare("SELECT time, inc FROM matches WHERE id = ? LIMIT 1");
-      $stmt->execute([$roomId]);
-      $row = $stmt->fetch(PDO::FETCH_ASSOC);
       $move = $data["move"];
       $conn->room = $roomId;
       // if it is the first move
       if (!isset($this->rooms[$roomId]["game"])) {
-        $this->rooms[$roomId]["game"] = [
+        $stmt = $con->prepare("SELECT time, inc, white, black FROM matches WHERE id = ? LIMIT 1");
+        $stmt->execute([$roomId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $room = &$this->rooms[$roomId];
+        $white_con = ($room[0]['id'] == $row["white"])? $room[0]['conn'] : $room[1]['conn'];
+        $black_con = ($room[0]['id'] == $row["black"])? $room[0]['conn'] : $room[1]['conn'];
+
+        $room["game"] = [
           "chess" => new Chess(),
+          "white_con" => $white_con,
+          "black_con" => $black_con,
           "clock" => [
             "white" => $row["time"] * 60 * 1000,
             "black" => $row["time"] * 60 * 1000,
@@ -108,52 +114,48 @@ class GameServer implements MessageComponentInterface
       }
       $game = &$this->rooms[$roomId]["game"]["chess"];
       $clock = &$this->rooms[$roomId]["game"]["clock"];
+      if (!$game->move($move)) {
+        return;
+      }
+
+      // if ($clock["white"] <= 0) {
+      //   return;
+      // }
+
       $now = microtime(true) * 1000;
       $elapsed = $now - $clock["last_update"];
       // subtract time from player who moved
       if ($clock['turn'] === "w") {
         $clock['white'] -= $elapsed;
         $clock['white'] += $clock['inc']; // increment
+        $clock['white'] = max(0, $clock['white']);
       } else {
         $clock['black'] -= $elapsed;
         $clock['black'] += $clock['inc'];
+        $clock['black'] = max(0, $clock['black']);
       }
-
       // switch turn
       $clock['turn'] = ($clock['turn'] === "w") ? "b" : "w";
       $clock['last_update'] = $now;
+      $FEN = $game->fen();
+      $moves = implode(",", $game->history());
+      $turn = $game->turn();
       if (isset($this->rooms[$roomId])) {
-        foreach ($this->rooms[$roomId] as $i => $player) {
-          if ($i == "game") continue;
-          $player['conn']->send(json_encode([
-            "type" => "clock_sync",
+        for ($i = 0; $i < 2; $i++) {
+          $player = $this->rooms[$roomId][$i];
+          $player["conn"]->send(json_encode([
+            "type" => "game_update",
+            "move" => $move,
+            "FEN" => $FEN,
             "white" => $clock['white'],
             "black" => $clock['black'],
             "turn" => $clock['turn'],
             "server_time" => microtime(true) * 1000,
-            "FEN" => $game->fen()
           ]));
         }
       }
-      if (!$game->move($move)) {
-        return;
-      }
-      $FEN = $game->fen();
-      $moves = implode(",", $game->history());
-      $turn = $game->turn();
       $stmt = $con->prepare("UPDATE matches SET board = ?, moves = ?, turn = ? WHERE id = ?");
       $stmt->execute([$FEN, $moves, $turn, $roomId]);
-      if (isset($this->rooms[$roomId])) {
-        foreach ($this->rooms[$roomId] as $i => $player) {
-          if ($i == "game") continue;
-          if ($player['conn'] !== $conn) {  // send to opponent only
-            $player['conn']->send(json_encode([
-              'type' => 'move',
-              'move' => $data['move'],
-            ]));
-          }
-        }
-      }
     }
 
     if ($data['type'] === 'join_room') {
@@ -161,8 +163,7 @@ class GameServer implements MessageComponentInterface
       if (!isset($this->rooms[$roomId])) {
         $this->rooms[$roomId] = [];
       }
-
-      $this->rooms[$roomId][] = ["conn" => $conn];
+      $this->rooms[$roomId][] = ["conn" => $conn, "id" => $data['id']];
     }
   }
 

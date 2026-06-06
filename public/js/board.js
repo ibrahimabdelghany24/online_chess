@@ -155,16 +155,14 @@ const countDown = setInterval(() => {
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  if (data.type === 'move') {
-    chess.move(data.move);
-    renderBoard();
-  }
 
-  if (data.type === "clock_sync") {
+  if (data.type === "game_update") {
     whiteTime = data.white;
     blackTime = data.black;
     turn = data.turn;
     lastSync = Date.now();
+    chess.load(data.FEN);
+    renderBoard();
   }
 };
 
