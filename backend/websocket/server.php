@@ -7,6 +7,8 @@ use Ratchet\ConnectionInterface;
 use Ratchet\Http\HttpServer;
 use Ratchet\Server\IoServer;
 use Ratchet\WebSocket\WsServer;
+use React\EventLoop\Loop;
+
 use Ryanhs\Chess\Chess;
 
 include __DIR__ . "/../db.php";
@@ -28,7 +30,16 @@ class GameServer implements MessageComponentInterface
   {
 
     $data = json_decode($msg, true);
+    echo "========================\n";
+    echo "\n";
+    print_r($data);
+    echo "\n";
+    foreach ($this->rooms as $i => $value) {
+      echo $i . "\n";
+    }
+    echo "=========================\n";
     if (!$data || !isset($data['type'])) return;
+
 
     // push to queue
     if ($data['type'] === 'join_queue') {
@@ -81,7 +92,7 @@ class GameServer implements MessageComponentInterface
           ]));
         }
       } else {
-        $this->queue[] = $player;
+        $this->queue[$player['id']] = $player;
       }
     }
     // recieve a move
@@ -96,13 +107,13 @@ class GameServer implements MessageComponentInterface
         $stmt->execute([$roomId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $room = &$this->rooms[$roomId];
-        $white_con = ($room[0]['id'] == $row["white"])? $room[0]['conn'] : $room[1]['conn'];
-        $black_con = ($room[0]['id'] == $row["black"])? $room[0]['conn'] : $room[1]['conn'];
-
+        $white_con = ($room[0]['id'] == $row["white"]) ? $room[0]['conn'] : $room[1]['conn'];
+        $black_con = ($room[0]['id'] == $row["black"]) ? $room[0]['conn'] : $room[1]['conn'];
         $room["game"] = [
           "chess" => new Chess(),
           "white_con" => $white_con,
           "black_con" => $black_con,
+          "state" => "started",
           "clock" => [
             "white" => $row["time"] * 60 * 1000,
             "black" => $row["time"] * 60 * 1000,
@@ -117,10 +128,6 @@ class GameServer implements MessageComponentInterface
       if (!$game->move($move)) {
         return;
       }
-
-      // if ($clock["white"] <= 0) {
-      //   return;
-      // }
 
       $now = microtime(true) * 1000;
       $elapsed = $now - $clock["last_update"];
@@ -160,15 +167,93 @@ class GameServer implements MessageComponentInterface
 
     if ($data['type'] === 'join_room') {
       $roomId = $data['room'];
+      $conn->room = $roomId;
       if (!isset($this->rooms[$roomId])) {
         $this->rooms[$roomId] = [];
       }
       $this->rooms[$roomId][] = ["conn" => $conn, "id" => $data['id']];
     }
+
+    if ($data["type"] == "rematch") {
+      $roomID = $data["room"];
+      $room = &$this->rooms[$roomID];
+      $other_player = ($room[0]["conn"] == $conn) ? $room[1]["conn"] : $room[0]["conn"];
+      $other_player->send(json_encode([
+        "type" => "ask_rematch",
+        "id" => $data["id"]
+      ])
+      );
+    }
+
+    if ($data["type"] == "rematch_response") {
+      // TODO: have to update the database and create a new id for new game and unset the old game data in the room
+      $roomID = $data["room"];
+      $room = &$this->rooms[$roomID];
+      if ($data["response"] == "accept") {
+        $other_player = ($room[0]["conn"] == $conn) ? $room[1]["conn"] : $room[0]["conn"];
+        $other_player->send(json_encode([
+          "type" => "rematch_accepted",
+          "id" => $data["id"]
+        ]));
+        // reset the game state
+        $room["game"]["chess"] = new Chess();
+        $room["game"]["state"] = "started";
+        // reset the clock
+        $room["game"]["clock"]["white"] = 5 * 60 * 1000; // TODO: get from database
+        $room["game"]["clock"]["black"] = 5 * 60 * 1000; // TODO: get from database
+        $room["game"]["clock"]["turn"] = "w";
+        $room["game"]["clock"]["last_update"] = microtime(true) * 1000;
+      } else {
+        $other_player = ($room[0]["conn"] == $conn) ? $room[1]["conn"] : $room[0]["conn"];
+        $other_player->send(json_encode([
+          "type" => "rematch_declined",
+          "id" => $data["id"]
+        ]));
+      }
+    }
   }
 
 
+  public function checkTimeouts()
+  {
+    $now = microtime(true) * 1000;
 
+    foreach ($this->rooms as $roomId => &$room) {
+
+      if (!isset($room["game"])) continue;
+
+      $clock = &$room["game"]["clock"];
+
+      $elapsed = $now - $clock["last_update"];
+
+      $white = $clock["white"];
+      $black = $clock["black"];
+
+      // simulate ONLY current side's ticking time
+      if ($clock["turn"] === "w") {
+        $white -= $elapsed;
+      } else {
+        $black -= $elapsed;
+      }
+
+      if ($white <= 0 || $black <= 0) {
+
+        $winner = ($white <= 0) ? "b" : "w";
+
+        for ($i = 0; $i < 2; $i++) {
+          $player = $room[$i];
+          if (!isset($player["conn"]) || $room["game"]["state"] == "finished") continue;
+
+          $player["conn"]->send(json_encode([
+            "type" => "timeout",
+            "winner" => $winner,
+            "reason" => "On Time"
+          ]));
+        }
+        $room["game"]["state"] = "finished";
+      }
+    }
+  }
 
   // When a player disconnects
   public function onClose(ConnectionInterface $conn)
@@ -191,6 +276,7 @@ class GameServer implements MessageComponentInterface
             ]));
           }
         }
+        echo "roomID: " . $roomId . " is deleted\n";
         unset($this->rooms[$roomId]);
       }
     }
@@ -206,6 +292,7 @@ class GameServer implements MessageComponentInterface
   private function findMatch(array $newPlayer)
   {
     foreach ($this->queue as $i => $p) {
+      if ($p['id'] == $newPlayer['id']) continue;
       if (
         abs($p['elo'] - $newPlayer['elo']) <= 50 &&
         $p['time'] == $newPlayer['time'] &&
@@ -219,16 +306,24 @@ class GameServer implements MessageComponentInterface
   }
 }
 
-// Run the server
-$server = IoServer::factory(
-  new HttpServer(
-    new WsServer(
-      new GameServer()
-    )
-  ),
-  8080
-);
+$loop = Loop::get();
 
+$gameServer = new GameServer();
+
+$loop->addPeriodicTimer(0.1, function () use ($gameServer) {
+  $gameServer->checkTimeouts();
+});
+
+$socket = new React\Socket\SocketServer('0.0.0.0:8080', [], $loop);
+
+// Run the server
+$server = new IoServer(
+  new HttpServer(
+    new WsServer($gameServer)
+  ),
+  $socket,
+  $loop
+);
 echo "WebSocket running on ws://localhost:8080\n";
 
-$server->run();
+$loop->run();

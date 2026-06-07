@@ -65,12 +65,43 @@ $opp = ($row["white"] == $_SESSION["user_id"]) ? "black" : "white";
       </div>
       <div class="status" id="status">White to move</div>
     </div>
-
+    <div class="controls">
+      <div class="buttons">
+        <button>Resign</button>
+        <button>Offer Draw</button>
+        <button onclick="newGame()">New Game</button>
+        <button>Cancel</button>
+      </div>
+    </div>
   </div>
+
+  <div id="gameOverModal" class="modal">
+    <div class="box">
+
+      <div class="exit" onclick=""><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2026 Fonticons, Inc.-->
+          <path d="M504.6 148.5C515.9 134.9 514.1 114.7 500.5 103.4C486.9 92.1 466.7 93.9 455.4 107.5L320 270L184.6 107.5C173.3 93.9 153.1 92.1 139.5 103.4C125.9 114.7 124.1 134.9 135.4 148.5L278.3 320L135.4 491.5C124.1 505.1 125.9 525.3 139.5 536.6C153.1 547.9 173.3 546.1 184.6 532.5L320 370L455.4 532.5C466.7 546.1 486.9 547.9 500.5 536.6C514.1 525.3 515.9 505.1 504.6 491.5L361.7 320L504.6 148.5z" />
+        </svg></div>
+
+      <div id="loserText" class="loser"></div>
+
+      <div id="resultText" class="result"></div>
+
+      <div class="buttons">
+        <button id="rematch" onclick="rematch()">Rematch</button>
+        <button id="new-game" onclick="newGame()">New Game</button>
+        <button id="accept">Accept</button>
+        <button id="decline">Decline</button>
+      </div>
+
+    </div>
+  </div>
+
   <script>
     const ROOM_ID = <?= $row["id"] ?>;
     const PLAYER_ID = <?= $_SESSION["user_id"] ?>;
     const PLAYER_COLOR = "<?= $you ?>";
+    const PLAYER_USERNAME = "<?= $_SESSION["username"] ?>";
+    const TYPE = "<?= $row["type"] ?>";
     let TIME = <?= $row["time"] ?>;
     let INC = <?= $row["inc"] ?>;
   </script>
