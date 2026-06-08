@@ -28,6 +28,7 @@ class GameServer implements MessageComponentInterface
   // When a message is received from a player
   public function onMessage(ConnectionInterface $conn, $msg)
   {
+    global $con;
 
     $data = json_decode($msg, true);
     echo "========================\n";
@@ -35,7 +36,10 @@ class GameServer implements MessageComponentInterface
     print_r($data);
     echo "\n";
     foreach ($this->rooms as $i => $value) {
-      echo $i . "\n";
+      echo "room: " . $i . "\n";
+    }
+    foreach ($this->queue as $i => $value) {
+      echo "queue: " . $i . "=>" . $value['username'] . "\n";
     }
     echo "=========================\n";
     if (!$data || !isset($data['type'])) return;
@@ -97,7 +101,6 @@ class GameServer implements MessageComponentInterface
     }
     // recieve a move
     if ($data['type'] === 'move') {
-      global $con;
       $roomId = $data['room'];
       $move = $data["move"];
       $conn->room = $roomId;
@@ -178,31 +181,59 @@ class GameServer implements MessageComponentInterface
       $roomID = $data["room"];
       $room = &$this->rooms[$roomID];
       $other_player = ($room[0]["conn"] == $conn) ? $room[1]["conn"] : $room[0]["conn"];
-      $other_player->send(json_encode([
-        "type" => "ask_rematch",
-        "id" => $data["id"]
-      ])
+      $other_player->send(
+        json_encode([
+          "type" => "ask_rematch",
+          "id" => $data["id"]
+        ])
       );
     }
 
     if ($data["type"] == "rematch_response") {
-      // TODO: have to update the database and create a new id for new game and unset the old game data in the room
+      // TODO: have to update the database and create a new id for new game and unset the old game data in the room ->done
       $roomID = $data["room"];
       $room = &$this->rooms[$roomID];
-      if ($data["response"] == "accept") {
-        $other_player = ($room[0]["conn"] == $conn) ? $room[1]["conn"] : $room[0]["conn"];
-        $other_player->send(json_encode([
-          "type" => "rematch_accepted",
-          "id" => $data["id"]
-        ]));
-        // reset the game state
-        $room["game"]["chess"] = new Chess();
-        $room["game"]["state"] = "started";
-        // reset the clock
-        $room["game"]["clock"]["white"] = 5 * 60 * 1000; // TODO: get from database
-        $room["game"]["clock"]["black"] = 5 * 60 * 1000; // TODO: get from database
-        $room["game"]["clock"]["turn"] = "w";
-        $room["game"]["clock"]["last_update"] = microtime(true) * 1000;
+
+      if ($data["accept"] == "true") {
+        $stmt = $con->prepare("SELECT white, black, time, inc, type FROM matches WHERE id = ? LIMIT 1");
+        $stmt->execute([$roomID]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $player1 = ["id" => $row["white"]];
+        $player2 = ["id" => $row["black"]];
+        $game_data = [
+          "time" => $row["time"],
+          "inc" => $row["inc"],
+          "type" => $row["type"]
+        ];
+        $color = rand(0, 1);
+        $stmt = $con->prepare(
+          "INSERT INTO matches(black, white, type, time, inc, board, turn, moves, status, date)
+          VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now())"
+        );
+        $stmt->execute(
+          [
+            ($color) ? $player1["id"] : $player2["id"],
+            ($color) ? $player2["id"] : $player1["id"],
+            $game_data["type"],
+            $game_data["time"],
+            $game_data["inc"],
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            "w",
+            "",
+            "waiting"
+          ]
+        );
+        $newRoomID = $con->lastInsertId();
+        for ($i = 0; $i < 2; $i++) {
+          $player = $room[$i];
+          if (!isset($player["conn"])) continue;
+          $player["conn"]->send(json_encode([
+            "type" => "start_game",
+            "room" => $newRoomID,
+            "url" => '../backend/game.php?game_id=' . $newRoomID
+          ]));
+        }
+        unset($this->rooms[$roomID]);
       } else {
         $other_player = ($room[0]["conn"] == $conn) ? $room[1]["conn"] : $room[0]["conn"];
         $other_player->send(json_encode([

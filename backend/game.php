@@ -86,6 +86,8 @@ $opp = ($row["white"] == $_SESSION["user_id"]) ? "black" : "white";
 
       <div id="resultText" class="result"></div>
 
+      <div class="message"></div>
+
       <div class="buttons">
         <button id="rematch" onclick="rematch()">Rematch</button>
         <button id="new-game" onclick="newGame()">New Game</button>

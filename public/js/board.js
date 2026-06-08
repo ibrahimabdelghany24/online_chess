@@ -1,4 +1,4 @@
-const ws = new WebSocket('ws://localhost:8080');
+let ws = new WebSocket('ws://localhost:8080');
 let whiteTime = TIME * 60 * 1000;
 let blackTime = TIME * 60 * 1000;
 let inc = INC * 1000;
@@ -142,20 +142,10 @@ function rematch() {
 }
 
 function newGame() {
-  fetch("../backend/api/check_user.php?username=" + PLAYER_USERNAME).
-    then(res => res.json()).
-    then(data => {
-      ws.send(JSON.stringify({
-        type: "join_queue",
-        username: PLAYER_USERNAME,
-        id: PLAYER_ID,
-        time: TIME,
-        inc: INC,
-        elo: data[TYPE + "_rating"],
-        game_type: TYPE
-      }));
-    })
-
+  document.getElementById("rematch").disabled = true;
+  document.getElementById("new-game").disabled = true;
+  sessionStorage.setItem("autoPlay", "true");
+  window.location.href = "../public/homepage.php?time=" + TIME + "&inc=" + INC + "&type=" + TYPE;
 };
 
 const countDown = setInterval(() => {
@@ -216,10 +206,6 @@ ws.onmessage = (event) => {
     showPopUp(data);
   }
 
-  if (data.type === "start_game") {
-    window.location.href = data.url;
-  }
-
   if (data.type === "ask_rematch") {
     document.getElementById("rematch").style.display = "none";
     document.getElementById("new-game").style.display = "none";
@@ -231,7 +217,7 @@ ws.onmessage = (event) => {
         type: "rematch_response",
         room: ROOM_ID,
         id: PLAYER_ID,
-        accept: true
+        accept: "true"
       }));
     }
 
@@ -240,13 +226,22 @@ ws.onmessage = (event) => {
         type: "rematch_response",
         room: ROOM_ID,
         id: PLAYER_ID,
-        accept: false
+        accept: "false"
       }));
       document.getElementById("rematch").style.display = "inline-block";
       document.getElementById("new-game").style.display = "inline-block";
       document.getElementById("accept").style.display = "none";
       document.getElementById("decline").style.display = "none";
     }
+  }
+
+  if (data.type === "rematch_declined") {
+    document.querySelector(".message").innerText = "Opponent declined the rematch.";
+    document.getElementById("rematch").disabled = true;
+  }
+
+  if (data.type === "start_game") {
+    window.location.href = data.url;
   }
 };
 

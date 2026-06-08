@@ -7,6 +7,7 @@ async function getData(username) {
 }
 
 
+
 document.querySelectorAll(".game-options a").forEach(el => {
   el.addEventListener("click", (e) => {
     e.preventDefault();
@@ -35,6 +36,16 @@ document.querySelectorAll(".game-options a").forEach(el => {
     }
   });
 });
+
+window.addEventListener("load", () => {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.has("time") && params.has("inc") && sessionStorage.getItem("autoPlay") === "true") {
+    document.getElementById(`${params.get("time")}-${params.get("inc")}`).click();
+  }
+  sessionStorage.removeItem("autoPlay");
+});
+
 
 socket.onmessage = (event) => {
   const data = JSON.parse(event.data);

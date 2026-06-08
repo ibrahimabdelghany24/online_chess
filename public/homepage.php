@@ -7,17 +7,17 @@ if (isset($_SESSION["user_id"])) {
     <a href="../backend/logout.php">logout</a>
     <div class="wrapper">
       <div class="game-options">
-        <a href="#" data-time="1" data-inc="0" data-elo="bullet">1m + 0s <span>Bullet</span></a><br>
-        <a href="#" data-time="2" data-inc="1" data-elo="bullet">2m + 1s <span>Bullet</span></a><br>
-        <a href="#" data-time="3" data-inc="0" data-elo="blitz">3m + 0s <span>Blitz</span></a><br>
-        <a href="#" data-time="3" data-inc="2" data-elo="blitz">3m + 2s <span>Blitz</span></a><br>
-        <a href="#" data-time="5" data-inc="0" data-elo="blitz">5m + 0s <span>Blitz</span></a><br>
-        <a href="#" data-time="5" data-inc="3" data-elo="blitz">5m + 3s <span>Blitz</span></a><br>
-        <a href="#" data-time="10" data-inc="0" data-elo="rapid">10m + 0s <span>Rapid</span></a><br>
-        <a href="#" data-time="10" data-inc="5" data-elo="rapid">10m + 5s <span>Rapid</span></a><br>
-        <a href="#" data-time="15" data-inc="10" data-elo="rapid">15m + 10s <span>Rapid</span></a><br>
-        <a href="#" data-time="30" data-inc="0" data-elo="classic">30m + 0s <span>Classic</span></a><br>
-        <a href="#" data-time="30" data-inc="20" data-elo="classic">30m + 20s <span>Classic</span></a><br>
+        <a href="#" id="1-0" data-time="1" data-inc="0" data-elo="bullet">1m + 0s <span>Bullet</span></a><br>
+        <a href="#" id="2-1" data-time="2" data-inc="1" data-elo="bullet">2m + 1s <span>Bullet</span></a><br>
+        <a href="#" id="3-0" data-time="3" data-inc="0" data-elo="blitz">3m + 0s <span>Blitz</span></a><br>
+        <a href="#" id="3-2" data-time="3" data-inc="2" data-elo="blitz">3m + 2s <span>Blitz</span></a><br>
+        <a href="#" id="5-0" data-time="5" data-inc="0" data-elo="blitz">5m + 0s <span>Blitz</span></a><br>
+        <a href="#" id="5-3" data-time="5" data-inc="3" data-elo="blitz">5m + 3s <span>Blitz</span></a><br>
+        <a href="#" id="10-0" data-time="10" data-inc="0" data-elo="rapid">10m + 0s <span>Rapid</span></a><br>
+        <a href="#" id="10-5" data-time="10" data-inc="5" data-elo="rapid">10m + 5s <span>Rapid</span></a><br>
+        <a href="#" id="15-10" data-time="15" data-inc="10" data-elo="rapid">15m + 10s <span>Rapid</span></a><br>
+        <a href="#" id="30-0" data-time="30" data-inc="0" data-elo="classic">30m + 0s <span>Classic</span></a><br>
+        <a href="#" id="30-20" data-time="30" data-inc="20" data-elo="classic">30m + 20s <span>Classic</span></a><br>
         <a href="#"><span>Custome</span></a><br>
         <a href="#" class="custome-a"><span>play bot</span></a><br>
         <a href="#" class="custome-a"><span>analyze</span></a><br>
