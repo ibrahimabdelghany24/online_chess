@@ -67,10 +67,10 @@ $opp = ($row["white"] == $_SESSION["user_id"]) ? "black" : "white";
     </div>
     <div class="controls">
       <div class="buttons">
-        <button>Resign</button>
-        <button>Offer Draw</button>
-        <button onclick="newGame()">New Game</button>
-        <button>Cancel</button>
+        <button id="resign" onclick="resign()" disabled>Resign</button>
+        <button id="offer-draw" onclick="offerDraw()" disabled>Offer Draw</button>
+        <button id="new-game1" onclick="newGame()" disabled>New Game</button>
+        <button id="cancel" onclick="cancel()">Cancel</button>
       </div>
     </div>
   </div>

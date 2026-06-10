@@ -1,6 +1,7 @@
 let ws = new WebSocket('ws://localhost:8080');
 let whiteTime = TIME * 60 * 1000;
 let blackTime = TIME * 60 * 1000;
+let originalTime = TIME * 60 * 1000;
 let inc = INC * 1000;
 let turn = "w"
 let lastSync = Date.now();
@@ -168,9 +169,19 @@ const countDown = setInterval(() => {
     whiteClock.innerHTML = formateTime(w);
     blackClock.innerHTML = formateTime(b);
   }
+
+  if (chess.history().length === 0 && myColor === "w") {
+    if (elapsed / 1000 >= 29) {
+      cancel();
+    }
+
+  } else if (chess.history().length === 1 && myColor === "b") {
+    diff = originalTime - b;
+    if (diff / 1000 >= 29) {
+      cancel();
+    }
+  }
 }, 100)
-
-
 
 function showPopUp(data) {
   const modal = document.getElementById("gameOverModal");
@@ -188,6 +199,33 @@ function showPopUp(data) {
   });
 }
 
+function resign() {
+  ws.send(JSON.stringify({
+    type: 'resign',
+    room: ROOM_ID,
+    id: PLAYER_ID
+  }));
+  showPopUp({ winner: myColor === "w" ? "b" : "w", reason: "by resignation" });
+  clearInterval(countDown);
+  document.getElementById("new-game1").disabled = false;
+}
+
+function offerDraw() {
+  ws.send(JSON.stringify({
+    type: 'offer_draw',
+    room: ROOM_ID,
+    id: PLAYER_ID
+  }));
+}
+
+function cancel() {
+  ws.send(JSON.stringify({
+    type: 'cancel',
+    room: ROOM_ID,
+    id: PLAYER_ID
+  }));
+  document.getElementById("new-game1").disabled = false;
+}
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -197,8 +235,13 @@ ws.onmessage = (event) => {
     blackTime = data.black;
     turn = data.turn;
     lastSync = Date.now();
-    chess.load(data.FEN);
+    chess.move(data.move);
     renderBoard();
+    if (data.move_count >= 2) {
+      document.getElementById("resign").disabled = false;
+      document.getElementById("offer-draw").disabled = false;
+      document.getElementById("cancel").disabled = true;
+    }
   }
 
   if (data.type === "timeout") {
@@ -243,6 +286,25 @@ ws.onmessage = (event) => {
   if (data.type === "start_game") {
     window.location.href = data.url;
   }
+
+  if (data.type === "match_cancelled") {
+    clearInterval(countDown);
+    ws.close();
+    const modal = document.getElementById("gameOverModal");
+    document.querySelector(".message").innerText = "Match was cancelled.";
+    document.getElementById("rematch").disabled = true;
+    modal.style.display = "flex";
+    document.querySelector('.exit').addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+    document.getElementById("new-game1").disabled = false;
+  }
+
+  if (data.type === "opponent_resigned") {
+    clearInterval(countDown);
+    showPopUp({ winner: myColor, reason: "by resignation" });
+    document.getElementById("new-game1").disabled = false;
+  }
 };
 
 
@@ -257,6 +319,10 @@ ws.onopen = () => {
 
 if (PLAYER_COLOR == "black") {
   flipBoard()
+}
+
+if (chess.history().length === 0 && myColor === "w") {
+
 }
 
 renderBoard();

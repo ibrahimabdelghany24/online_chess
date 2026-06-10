@@ -110,14 +110,11 @@ class GameServer implements MessageComponentInterface
         $stmt->execute([$roomId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $room = &$this->rooms[$roomId];
-        $white_con = ($room[0]['id'] == $row["white"]) ? $room[0]['conn'] : $room[1]['conn'];
-        $black_con = ($room[0]['id'] == $row["black"]) ? $room[0]['conn'] : $room[1]['conn'];
         $room["game"] = [
           "chess" => new Chess(),
-          "white_con" => $white_con,
-          "black_con" => $black_con,
-          "state" => "started",
+          "state" => "active",
           "clock" => [
+            "original_time" => $row["time"] * 60,
             "white" => $row["time"] * 60 * 1000,
             "black" => $row["time"] * 60 * 1000,
             "inc" => $row["inc"] * 1000,
@@ -156,6 +153,7 @@ class GameServer implements MessageComponentInterface
           $player["conn"]->send(json_encode([
             "type" => "game_update",
             "move" => $move,
+            "move_count" => count($game->history()),
             "FEN" => $FEN,
             "white" => $clock['white'],
             "black" => $clock['black'],
@@ -164,12 +162,19 @@ class GameServer implements MessageComponentInterface
           ]));
         }
       }
-      $stmt = $con->prepare("UPDATE matches SET board = ?, moves = ?, turn = ? WHERE id = ?");
-      $stmt->execute([$FEN, $moves, $turn, $roomId]);
+      $stmt = $con->prepare("UPDATE matches SET board = ?, moves = ?, turn = ?, status = ? WHERE id = ?");
+      $stmt->execute([$FEN, $moves, $turn, "active", $roomId]);
     }
 
     if ($data['type'] === 'join_room') {
       $roomId = $data['room'];
+      $stmt = $con->prepare("SELECT status FROM matches WHERE id = ? LIMIT 1");
+      $stmt->execute([$roomId]);
+      $row = $stmt->fetch(PDO::FETCH_ASSOC);
+      if (!$row || $row["status"] != "waiting") {
+        echo "invalid room join attempt for room: " . $roomId . "\n";
+        return;
+      }
       $conn->room = $roomId;
       if (!isset($this->rooms[$roomId])) {
         $this->rooms[$roomId] = [];
@@ -241,6 +246,37 @@ class GameServer implements MessageComponentInterface
           "id" => $data["id"]
         ]));
       }
+    }
+
+    if ($data["type"] == "cancel") {
+      $roomId = $data["room"];
+      if (isset($this->rooms[$roomId])) {
+        for ($i = 0; $i < 2; $i++) {
+          $player = $this->rooms[$roomId][$i];
+          $player["conn"]->send(json_encode([
+            "type" => "match_cancelled"
+          ]));
+        }
+      }
+      $stmt = $con->prepare("DELETE FROM matches WHERE id = ?");
+      $stmt->execute([$roomId]);
+      unset($this->rooms[$roomId]);
+    }
+
+    if ($data["type"] == "resign") {
+      $roomId = $conn->room;
+      if (isset($this->rooms[$roomId])) {
+        for ($i = 0; $i < 2; $i++) {
+          $player = $this->rooms[$roomId][$i];
+          if ($player["conn"] !== $conn) {
+            $player["conn"]->send(json_encode([
+              "type" => "opponent_resigned"
+            ]));
+          }
+        }
+      }
+      $stmt = $con->prepare("UPDATE matches SET status = 'finished' WHERE id = ?");
+      $stmt->execute([$roomId]);
     }
   }
 
